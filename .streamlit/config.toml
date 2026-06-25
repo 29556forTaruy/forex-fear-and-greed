@@ -1,0 +1,9 @@
+[theme]
+base = "light"
+primaryColor = "#1f3a93"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+# Streamlit Cloud では headless 既定。ローカルは run スクリプトが起動。

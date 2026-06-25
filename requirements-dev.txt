@@ -1,0 +1,9 @@
+# 開発用(ノートブック生成・検証チャート)。アプリ実行には不要。
+#   .venv/bin/python -m pip install -r requirements-dev.txt
+-r requirements.txt
+matplotlib>=3.7
+jupyter>=1.0
+ipykernel>=6.29
+nbformat>=5.9
+nbconvert>=7.0
+kaleido
