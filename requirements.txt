@@ -1,9 +1,9 @@
 # アプリ(ダッシュボード)の実行に必要な依存。Streamlit Cloud もこのファイルを読む。
-# pandas は 3.0 系で外部ライブラリ互換が不安定なため 2.x に固定。
-streamlit>=1.30
-plotly>=5.18
-pandas>=2.0,<2.3
-numpy>=1.24,<2.2
-requests>=2.31
-yfinance>=0.2.40
-pyarrow>=14.0
+# クリーン環境(Python 3.13)でコールドスタート検証済みの組に固定(2026-07-02)。
+streamlit==1.58.0
+plotly==6.8.0
+pandas==2.2.3
+numpy==2.1.3
+requests==2.34.2
+yfinance==1.5.1
+pyarrow==24.0.0
