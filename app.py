@@ -18,7 +18,7 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import CONFIG, fred_api_key            # noqa: E402
-from data_sources.load import build_dataset        # noqa: E402
+from data_sources.load import get_dataset          # noqa: E402
 from fng.index import compute_index, snapshot, label_for  # noqa: E402
 from fng import viz                                  # noqa: E402
 
@@ -27,24 +27,38 @@ st.set_page_config(page_title="Forex Fear & Greed", page_icon="📊", layout="wi
 PERIODS = {"1ヶ月": 21, "3ヶ月": 63, "6ヶ月": 126, "1年": 252, "全期間": None}
 
 
-@st.cache_data(ttl=3600, show_spinner="データ取得中…")
-def load_pair(pair: str, start: str):
-    df = build_dataset(pair, start=start, force=False)
+@st.cache_data(ttl=3600, show_spinner="データ読み込み中…")
+def load_pair(pair: str, start: str, live: bool):
+    df = get_dataset(pair, start=start, live=live)
     res = compute_index(df)
-    return df, res
+    return df, res, dict(df.attrs)
 
 
 @st.cache_data(ttl=3600, show_spinner="全ペアを計算中…")
-def load_overview(pairs: tuple, start: str):
+def load_overview(pairs: tuple, start: str, live: bool):
     rows = []
     for p in pairs:
         try:
-            df, _ = load_pair(p, start)
+            df, _, _ = load_pair(p, start, live)
             rows.append(snapshot(df, pair=p))
         except Exception as e:  # noqa: BLE001
             rows.append({"pair": p, "fear_greed": None, "label_ja": f"取得失敗({e})",
                          "price": None, "realized_vol_pct": None})
     return rows
+
+
+def _source_note(attrs: dict) -> None:
+    """データの出所と鮮度を明示する(同梱 seed / ライブ取得 / 失敗時フォールバック)。"""
+    src, when = attrs.get("source"), attrs.get("last_date")
+    if src == "live":
+        st.success(f"ライブ取得データ(最終営業日 {when})", icon="🛰️")
+    elif src == "seed_fallback":
+        st.warning(f"⚠️ ライブ取得に失敗したため、同梱データ(最終営業日 {when})を表示しています。")
+    else:
+        built = attrs.get("built_at")
+        st.info(f"📦 同梱データ(最終営業日 {when}{f' / 生成 {built}' if built else ''})を表示中。"
+                " 本指数は日次終値ベースのため通常はこれで十分です。"
+                " 最新値が必要なときはサイドバーの「最新データを取得」を押してください。")
 
 
 def _fmt_price(p) -> str:
@@ -63,9 +77,16 @@ st.sidebar.title("⚙️ 設定")
 pair = st.sidebar.selectbox("通貨ペア", list(CONFIG["pairs"].keys()), index=0)
 period = st.sidebar.radio("表示期間", list(PERIODS.keys()), index=3)
 overlay = st.sidebar.checkbox("チャートに価格を重ねる", value=True)
-if st.sidebar.button("🔄 データ再取得"):
+st.session_state.setdefault("live", False)
+if st.sidebar.button("🔄 最新データを取得", help="外部APIから取り直します(20秒ほどかかります)"):
     load_pair.clear()
     load_overview.clear()
+    st.session_state.live = True
+    st.rerun()
+if st.session_state.live and st.sidebar.button("📦 同梱データに戻す"):
+    load_pair.clear()
+    load_overview.clear()
+    st.session_state.live = False
     st.rerun()
 st.sidebar.caption("金利源: " + ("FRED(キー有)" if fred_api_key() else "米財務省+MoF(無料)。EUR/GBP/AUD金利差はFREDキーで有効化"))
 st.sidebar.caption("価格: yfinance / 建玉: CFTC")
@@ -74,7 +95,7 @@ tab_detail, tab_overview = st.tabs(["📊 単一ペア詳細", "🌐 多通貨�
 
 # ============================================================================= 単一ペア詳細
 with tab_detail:
-    df, res = load_pair(pair, CONFIG["fetch_start"])
+    df, res, attrs = load_pair(pair, CONFIG["fetch_start"], st.session_state.live)
     snap = snapshot(df, pair=pair)
     n = PERIODS[period]
     res_v = res if n is None else res.tail(n)
@@ -86,6 +107,7 @@ with tab_detail:
     st.caption(
         f"**高スコア = 強欲 = リスクオン = {pair} 上昇** / **低スコア = 恐怖 = リスクオフ = {pair} 下落**。 "
         f"base={pc['base']} / quote={pc['quote']}。 最終データ: **{snap['date']}**")
+    _source_note(attrs)
 
     c1, c2, c3 = st.columns([1.4, 1, 1])
     with c1:
@@ -149,7 +171,8 @@ with tab_detail:
 with tab_overview:
     st.subheader("🌐 多通貨 Fear & Greed 概要")
     st.caption("全通貨ペアのセンチメントを一覧。高=強欲(リスクオン)/低=恐怖(リスクオフ)。")
-    rows = load_overview(tuple(CONFIG["pairs"].keys()), CONFIG["fetch_start"])
+    rows = load_overview(tuple(CONFIG["pairs"].keys()), CONFIG["fetch_start"],
+                         st.session_state.live)
     valid = [r for r in rows if r.get("fear_greed") is not None]
     if valid:
         st.plotly_chart(
