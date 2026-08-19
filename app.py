@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import CONFIG, fred_api_key            # noqa: E402
 from data_sources.load import get_dataset          # noqa: E402
+from data_sources import seed as _seed             # noqa: E402
 from fng.index import compute_index, snapshot, label_for  # noqa: E402
 from fng import viz                                  # noqa: E402
 
@@ -27,19 +28,24 @@ st.set_page_config(page_title="Forex Fear & Greed", page_icon="📊", layout="wi
 PERIODS = {"1ヶ月": 21, "3ヶ月": 63, "6ヶ月": 126, "1年": 252, "全期間": None}
 
 
+def seed_stamp() -> str:
+    """同梱データの版を表す文字列。キャッシュキーに混ぜて、seed 更新時に自動失効させる。"""
+    return str(_seed.read_manifest().get("built_at", "none"))
+
+
 @st.cache_data(ttl=3600, show_spinner="データ読み込み中…")
-def load_pair(pair: str, start: str, live: bool):
+def load_pair(pair: str, start: str, live: bool, stamp: str):
     df = get_dataset(pair, start=start, live=live)
     res = compute_index(df)
     return df, res, dict(df.attrs)
 
 
 @st.cache_data(ttl=3600, show_spinner="全ペアを計算中…")
-def load_overview(pairs: tuple, start: str, live: bool):
+def load_overview(pairs: tuple, start: str, live: bool, stamp: str):
     rows = []
     for p in pairs:
         try:
-            df, _, _ = load_pair(p, start, live)
+            df, _, _ = load_pair(p, start, live, stamp)
             rows.append(snapshot(df, pair=p))
         except Exception as e:  # noqa: BLE001
             rows.append({"pair": p, "fear_greed": None, "label_ja": f"取得失敗({e})",
@@ -95,7 +101,7 @@ tab_detail, tab_overview = st.tabs(["📊 単一ペア詳細", "🌐 多通貨�
 
 # ============================================================================= 単一ペア詳細
 with tab_detail:
-    df, res, attrs = load_pair(pair, CONFIG["fetch_start"], st.session_state.live)
+    df, res, attrs = load_pair(pair, CONFIG["fetch_start"], st.session_state.live, seed_stamp())
     snap = snapshot(df, pair=pair)
     n = PERIODS[period]
     res_v = res if n is None else res.tail(n)
@@ -172,7 +178,7 @@ with tab_overview:
     st.subheader("🌐 多通貨 Fear & Greed 概要")
     st.caption("全通貨ペアのセンチメントを一覧。高=強欲(リスクオン)/低=恐怖(リスクオフ)。")
     rows = load_overview(tuple(CONFIG["pairs"].keys()), CONFIG["fetch_start"],
-                         st.session_state.live)
+                         st.session_state.live, seed_stamp())
     valid = [r for r in rows if r.get("fear_greed") is not None]
     if valid:
         st.plotly_chart(
