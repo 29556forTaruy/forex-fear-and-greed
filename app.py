@@ -112,7 +112,7 @@ with tab_detail:
     c1, c2, c3 = st.columns([1.4, 1, 1])
     with c1:
         st.plotly_chart(viz.gauge_figure(snap["fear_greed"], snap["label_ja"], _at_offset(fg, 5)),
-                        use_container_width=True)
+                        width="stretch")
     with c2:
         st.markdown(f"#### {pair}")
         last2 = df["price"].dropna().tail(2)
@@ -135,14 +135,14 @@ with tab_detail:
     st.subheader(f"📈 FX Fear & Greed Index の推移({period})")
     st.plotly_chart(
         viz.index_timeseries_figure(res_v["fear_greed"].dropna(), df_v["price"], overlay_price=overlay),
-        use_container_width=True)
+        width="stretch")
 
     left, right = st.columns([1.3, 1])
     with left:
         st.subheader("🧩 構成要素の内訳")
         comp_names = list(CONFIG["components"].keys())
         latest_comp = res[comp_names].dropna(how="all").iloc[-1]
-        st.plotly_chart(viz.component_bar_figure(latest_comp), use_container_width=True)
+        st.plotly_chart(viz.component_bar_figure(latest_comp), width="stretch")
         if pd.isna(latest_comp.get("rate_diff")):
             st.caption("※ 金利差は未取得(EUR/GBP/AUD は FRED キーで有効化)")
     with right:
@@ -158,14 +158,14 @@ with tab_detail:
         st.subheader("🌡️ 通貨VIX(実現ボラ + 株式VIX)")
         st.plotly_chart(
             viz.vix_figure(res_v["realized_vol_pct"].dropna(), df_v.get("vix")),
-            use_container_width=True)
+            width="stretch")
     with v2:
         st.subheader(f"💱 {pair} 現在値と移動平均")
         st.plotly_chart(
             viz.price_figure(df_v["price"],
                              df["price"].rolling(50).mean().reindex(df_v.index),
                              df["price"].rolling(200).mean().reindex(df_v.index)),
-            use_container_width=True)
+            width="stretch")
 
 # ============================================================================= 多通貨概要
 with tab_overview:
@@ -177,7 +177,7 @@ with tab_overview:
     if valid:
         st.plotly_chart(
             viz.overview_bar_figure([r["pair"] for r in valid], [r["fear_greed"] for r in valid]),
-            use_container_width=True)
+            width="stretch")
         table = pd.DataFrame([{
             "ペア": r["pair"],
             "Fear & Greed": r["fear_greed"],
@@ -185,7 +185,7 @@ with tab_overview:
             "現在値": _fmt_price(r["price"]),
             "実現ボラ%": r["realized_vol_pct"],
         } for r in rows])
-        st.dataframe(table, use_container_width=True, hide_index=True)
+        st.dataframe(table, width="stretch", hide_index=True)
     else:
         st.warning("データを取得できませんでした。")
 
