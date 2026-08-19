@@ -117,7 +117,7 @@ with tab_detail:
         st.markdown(f"#### {pair}")
         last2 = df["price"].dropna().tail(2)
         delta = float(last2.iloc[-1] - last2.iloc[-2]) if len(last2) == 2 else None
-        st.metric("現在値", _fmt_price(snap["price"]),
+        st.metric(f"終値({snap['date']})", _fmt_price(snap["price"]),
                   f"{delta:+.4f}" if delta is not None else None)
         ma50 = df["price"].rolling(50).mean().iloc[-1]
         ma200 = df["price"].rolling(200).mean().iloc[-1]
@@ -160,7 +160,7 @@ with tab_detail:
             viz.vix_figure(res_v["realized_vol_pct"].dropna(), df_v.get("vix")),
             width="stretch")
     with v2:
-        st.subheader(f"💱 {pair} 現在値と移動平均")
+        st.subheader(f"💱 {pair} 価格と移動平均")
         st.plotly_chart(
             viz.price_figure(df_v["price"],
                              df["price"].rolling(50).mean().reindex(df_v.index),
@@ -182,7 +182,7 @@ with tab_overview:
             "ペア": r["pair"],
             "Fear & Greed": r["fear_greed"],
             "判定": r["label_ja"],
-            "現在値": _fmt_price(r["price"]),
+            "終値": _fmt_price(r["price"]),
             "実現ボラ%": r["realized_vol_pct"],
         } for r in rows])
         st.dataframe(table, width="stretch", hide_index=True)
@@ -193,4 +193,5 @@ st.divider()
 st.caption(
     "データ源(無料): 価格=yfinance / 米国債=米財務省 / 日本国債=財務省MoF / 建玉=CFTC / "
     "EUR・GBP・AUD金利=FRED(任意キー)。 方法論: docs/methodology_usdjpy.md。 "
-    "限界: 実現ボラは終値ベース・無料のFXインプライドボラ/リスクリバーサルは未対応。")
+    "限界: 表示価格はリアルタイム値ではなく日次終値(最終営業日の値)。"
+    "実現ボラは終値ベース・無料のFXインプライドボラ/リスクリバーサルは未対応。")

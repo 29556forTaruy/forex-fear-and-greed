@@ -4,8 +4,10 @@ name: Refresh seed data
 
 on:
   schedule:
-    # 23:00 UTC = NYクローズ後。日次終値が確定してから取得する。
-    - cron: "0 23 * * *"
+    # 01:00 UTC(= 10:00 JST)。yfinance の FX 日足は London 00:00(= 23:00 UTC)で
+    # 切り替わるため、23:00 UTC 実行だと「まだ形成中の当日足」を暫定値のまま掴む。
+    # 前日足が確定してから取りに行くために 2時間ずらしている。
+    - cron: "0 1 * * *"
   workflow_dispatch:        # 手動実行も可能
 
 permissions:
