@@ -15,6 +15,7 @@ from config import CONFIG, pair_config
 from . import prices as _prices
 from . import rates as _rates
 from . import positioning as _positioning
+from . import seed as _seed
 
 
 def _breadth_pct(master: pd.Index, start: str, force: bool, window: int) -> pd.Series:
@@ -61,6 +62,8 @@ def build_dataset(pair: str = "USDJPY", start: str | None = None,
         df["breadth_pct"] = _breadth_pct(master, start, force,
                                          CONFIG["components"]["breadth"]["mom_window"])
 
+    df.attrs["source"] = "live"
+    df.attrs["last_date"] = str(df.index[-1].date()) if len(df) else None
     return df
 
 
@@ -74,3 +77,27 @@ def cache_dataset(df: pd.DataFrame, pair: str = "USDJPY") -> str:
         path = path.replace(".parquet", ".csv")
         df.to_csv(path)
     return path
+
+
+def get_dataset(pair: str = "USDJPY", start: str | None = None,
+                live: bool = False) -> pd.DataFrame:
+    """アプリ向けの取得口。
+
+    live=False(既定): 同梱 seed を即座に返す(公開環境での初回表示が一瞬・外部依存ゼロ)。
+                      seed が無ければライブ取得にフォールバック。
+    live=True       : ライブ取得。失敗したら seed にフォールバックする(空ページを出さない)。
+
+    返り値の `df.attrs["source"]` が "seed" / "live" のどちらかを示す。
+    """
+    if not live:
+        df = _seed.load_seed(pair)
+        if df is not None:
+            return df
+    try:
+        return build_dataset(pair, start=start, force=live)
+    except Exception:
+        df = _seed.load_seed(pair)
+        if df is None:
+            raise
+        df.attrs["source"] = "seed_fallback"
+        return df

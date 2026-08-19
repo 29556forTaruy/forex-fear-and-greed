@@ -12,8 +12,20 @@ CNN の [Fear & Greed Index](https://edition.cnn.com/markets/fear-and-greed) を
 円は安全通貨のため、**高スコア = Greed = リスクオン = 円安 = USD/JPY 上昇**、
 **低スコア = Fear = リスクオフ = 円高 = USD/JPY 下落**。極端な強欲はキャリー過熱・反転リスクの警告も兼ねる。
 
-6 構成要素(すべて無料データ・等価重み付き):
-モメンタム / 52週レンジ位置 / 実現ボラ(通貨VIX) / 日米金利差 / クロスアセット・リスク / CFTC建玉。
+7 構成要素(すべて無料データ)。重みは [config.py](config.py) の `components` が単一ソース:
+
+| 要素 | 重み | 内容 |
+|---|---|---|
+| momentum | 0.18 | 価格 vs 125日移動平均 |
+| realized_vol | 0.18 | 20日実現ボラ(通貨VIX)・反転 |
+| rate_diff | 0.18 | base−quote 金利差の水準 + 60日変化 |
+| risk_regime | 0.14 | VIX / 日経 / S&P500 / AUDJPY のクロスアセット |
+| strength | 0.12 | 52週レンジ位置 |
+| cot | 0.10 | CFTC 投機筋ネット建玉 |
+| breadth | 0.10 | クロス円の上昇の広がり(JPYペアのみ) |
+
+ある時点で欠損している要素は分子・分母の両方から外し、残りの重みを再正規化する
+([`fng/index.py`](fng/index.py) `aggregate`)。非JPYペアでは breadth が無いため分母は 0.90 になる。
 
 ## かんたん起動
 - **Mac**: `run.command` を **ダブルクリック**(初回だけ自動セットアップ → ブラウザが開く)
@@ -29,11 +41,32 @@ python3 -m venv .venv
 任意で `FRED_API_KEY` を設定すると EUR/GBP/AUD を含むペアの金利差要素が有効化。
 
 ## Web公開(Streamlit Community Cloud・無料)
-1. このリポジトリを GitHub に push(済みなら不要)。
+
+### 同梱データ方式(なぜ速いか)
+公開環境では「初回アクセスが遅い」「クラウドIPからの外部API取得が失敗しうる」の2点が問題になる。
+そこで `build_dataset()` の出力を **リポジトリに同梱**(`data/seed/*.parquet`・全6ペアで約700KB)し、
+アプリは既定でこれを読む。**全6ペアの読み込みが 23秒 → 0.5秒**になり、外部APIが落ちていても表示できる。
+
+本指数は日次終値ベースなので、同梱データが最大1営業日古くても指数値は変わらない。
+同梱データは GitHub Actions([`.github/workflows/refresh-seed.yml`](.github/workflows/refresh-seed.yml))が
+**毎日 23:00 UTC(NYクローズ後)に更新**してコミットする。手動更新は下記:
+
+```bash
+.venv/bin/python scripts/refresh_seed.py            # 全ペア
+.venv/bin/python scripts/refresh_seed.py --pair USDJPY
+```
+
+アプリ内のサイドバー「🔄 最新データを取得」を押すと、その場でライブ取得に切り替わる
+(失敗した場合は同梱データに自動フォールバックし、空ページにはならない)。
+
+### デプロイ手順
+1. このリポジトリを GitHub に push。
 2. https://share.streamlit.io にGitHubでログイン → **New app**。
 3. リポジトリ / ブランチ `main` / Main file path `app.py` を選択(Python は 3.12 推奨)。
 4. **Deploy** → 数分で `https://<name>.streamlit.app` が発行され、どこからでも閲覧可能。
    - 任意: Advanced settings → Secrets に `FRED_API_KEY="..."` を入れると金利差要素が全ペアで有効化。
+   - 同じキーを GitHub の **Settings → Secrets and variables → Actions** に `FRED_API_KEY` として
+     登録すると、日次更新される同梱データ側にも金利差要素が入る。
 
 ## 使い方
 ```bash
@@ -57,13 +90,16 @@ python3 -m venv .venv
 
 ## ディレクトリ構成
 ```
-app.py                 Streamlit ダッシュボード(段階2)
+app.py                 Streamlit ダッシュボード
 config.py              設定の単一ソース(重み・窓・ペア・データ源)
-docs/                  方法論ドキュメント(CNN解明 / USDJPY設計)
-data_sources/          取得層(prices/rates/positioning/load)
+docs/                  方法論ドキュメント(CNN解明 / USDJPY設計 / 詳細解説)
+data_sources/          取得層(prices/rates/positioning/load/seed)
 fng/                   計算コア(indicators/components/index)+ viz(plotlyチャート)
+scripts/refresh_seed.py 同梱データの再生成
+.github/workflows/     同梱データの日次更新(GitHub Actions)
 notebooks/             段階1 検証ノートブック
-data/cache/            取得データのキャッシュ
+data/seed/             同梱データ(Gitで追跡・アプリの既定の読み込み元)
+data/cache/            ライブ取得時の作業キャッシュ(gitignore)
 data/reports/          検証チャート
 ```
 
@@ -82,6 +118,7 @@ EUR/GBP/AUD を含むペアの金利差要素は無料の **FRED キー** で有
 - **段階1(完了)**: USD/JPY 指数をノートブックで構築・検証。
 - **段階2(完了)**: Streamlit ダッシュボード化(FX F&G 時系列チャート含む)。
 - **段階3(完了)**: 多通貨化(6ペア)+ JPY-strength breadth 要素 + 多通貨概要タブ。
+- **公開(完了)**: 同梱データ + GitHub Actions 日次更新で、Streamlit Cloud に常時公開できる状態に。
 - **今後**: (予算次第で)インプライドボラ/25Δリスクリバーサル(スキュー)への高度化、対応ペア拡充。
 
 ## 関連
