@@ -1,5 +1,5 @@
 {
-  "built_at": "2026-08-22T02:09:02Z",
+  "built_at": "2026-08-23T02:18:15Z",
   "fred_key_used": false,
   "pairs": {
     "USDJPY": {
@@ -9,10 +9,10 @@
       "rows": 1988
     },
     "EURJPY": {
-      "last_date": "2026-08-21",
-      "fear_greed": 32.2,
+      "last_date": "2026-08-22",
+      "fear_greed": 32.1,
       "label_en": "Fear",
-      "rows": 1989
+      "rows": 1990
     },
     "GBPJPY": {
       "last_date": "2026-08-21",
@@ -33,10 +33,10 @@
       "rows": 1988
     },
     "GBPUSD": {
-      "last_date": "2026-08-21",
-      "fear_greed": 79.8,
+      "last_date": "2026-08-23",
+      "fear_greed": 79.9,
       "label_en": "Extreme Greed",
-      "rows": 1988
+      "rows": 1989
     }
   },
   "failed": []
