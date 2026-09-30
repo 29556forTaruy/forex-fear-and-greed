@@ -1,42 +1,42 @@
 {
-  "built_at": "2026-09-29T06:23:35Z",
+  "built_at": "2026-09-30T06:07:22Z",
   "fred_key_used": false,
   "pairs": {
     "USDJPY": {
-      "last_date": "2026-09-29",
-      "fear_greed": 33.5,
+      "last_date": "2026-09-30",
+      "fear_greed": 33.4,
       "label_en": "Fear",
-      "rows": 2015
+      "rows": 2016
     },
     "EURJPY": {
-      "last_date": "2026-09-29",
-      "fear_greed": 12.4,
+      "last_date": "2026-09-30",
+      "fear_greed": 12.0,
       "label_en": "Extreme Fear",
-      "rows": 2016
+      "rows": 2017
     },
     "GBPJPY": {
-      "last_date": "2026-09-29",
-      "fear_greed": 18.3,
+      "last_date": "2026-09-30",
+      "fear_greed": 18.6,
       "label_en": "Extreme Fear",
-      "rows": 2016
+      "rows": 2017
     },
     "AUDJPY": {
-      "last_date": "2026-09-29",
-      "fear_greed": 27.9,
+      "last_date": "2026-09-30",
+      "fear_greed": 26.8,
+      "label_en": "Fear",
+      "rows": 2017
+    },
+    "EURUSD": {
+      "last_date": "2026-09-30",
+      "fear_greed": 32.2,
       "label_en": "Fear",
       "rows": 2016
     },
-    "EURUSD": {
-      "last_date": "2026-09-29",
-      "fear_greed": 32.3,
-      "label_en": "Fear",
-      "rows": 2015
-    },
     "GBPUSD": {
-      "last_date": "2026-09-29",
-      "fear_greed": 44.6,
-      "label_en": "N/A",
-      "rows": 2015
+      "last_date": "2026-09-30",
+      "fear_greed": 45.7,
+      "label_en": "Neutral",
+      "rows": 2016
     }
   },
   "failed": []
